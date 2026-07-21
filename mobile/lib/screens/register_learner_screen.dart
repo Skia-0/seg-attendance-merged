@@ -280,7 +280,7 @@ class _RegisterLearnerScreenState extends State<RegisterLearnerScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                   decoration: BoxDecoration(
                     color: const Color(0xFFE8F0F7),
-                    borderRadius: BorderRadius(8),
+                    borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
                     'ID: ${_selectedCohort!['cohort_id'].toString().substring(0, 12)}...',
