@@ -1,5 +1,6 @@
 # Run this from the backend folder to quickly create test data
 # Usage: python quick_setup.py
+# Note: Uses PostgreSQL (per .env) instead of SQLite. Make sure PostgreSQL is running.
 
 import sys
 sys.path.insert(0, '.')
