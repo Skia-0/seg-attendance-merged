@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/coordinator_provider.dart';
 import 'cohort_screen.dart';
 import 'register_learner_screen.dart';
+import 'create_cohort_screen.dart';
 import 'login_screen.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -99,6 +100,17 @@ class HomeScreen extends StatelessWidget {
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => const RegisterLearnerScreen()),
+                ),
+              ),
+              const SizedBox(height: 12),
+              _menuCard(
+                context,
+                icon: Icons.add_circle,
+                title: 'Create Cohort',
+                subtitle: 'Make a new cohort for this hub',
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const CreateCohortScreen()),
                 ),
               ),
             ],
