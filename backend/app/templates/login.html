@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SEG Dashboard Login</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #F5F7FA; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+    .card { background: white; border-radius: 12px; border: 1px solid #E2E8F0; padding: 40px; width: 100%; max-width: 420px; }
+    h1 { font-size: 24px; color: #2C5F8A; margin-bottom: 8px; }
+    p { font-size: 14px; color: #4A5568; margin-bottom: 32px; }
+    label { display: block; font-size: 13px; font-weight: 600; color: #4A5568; margin-bottom: 6px; }
+    input, select { width: 100%; padding: 10px 14px; border: 1px solid #E2E8F0; border-radius: 8px; font-size: 14px; margin-bottom: 16px; outline: none; background: white; }
+    input:focus, select:focus { border-color: #2C5F8A; }
+    button { width: 100%; padding: 12px; background: #2C5F8A; color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; margin-bottom: 10px; }
+    button:hover { background: #245079; }
+    .error { color: red; font-size: 13px; margin-bottom: 12px; display: none; }
+    .divider { border: none; border-top: 1px solid #E2E8F0; margin: 20px 0; }
+    .section-label { font-size: 12px; font-weight: 700; color: #4A5568; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 16px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>SEG Dashboard</h1>
+    <p>Sign in and start a session to begin taking attendance.</p>
+    <div class="error" id="error-msg"></div>
+
+    <div class="section-label">Coordinator Login</div>
+    <label>Phone Number</label>
+    <input type="text" id="phone" placeholder="0241234567">
+    <label>Password</label>
+    <input type="password" id="password" placeholder="••••••••">
+
+    <hr class="divider">
+
+    <div class="section-label">Session Details</div>
+    <label>Cohort ID</label>
+    <input type="text" id="cohort-id" placeholder="Paste cohort ID here">
+    <label>Session Title</label>
+    <input type="text" id="session-title" placeholder="e.g. Poultry Management - Week 3">
+
+    <button onclick="loginAndStart()">Sign In & Start Session</button>
+  </div>
+
+  <script>
+    async function loginAndStart() {
+      const phone = document.getElementById('phone').value.trim();
+      const password = document.getElementById('password').value.trim();
+      const cohortId = document.getElementById('cohort-id').value.trim();
+      const sessionTitle = document.getElementById('session-title').value.trim();
+
+      if (!phone || !password || !cohortId || !sessionTitle) {
+        showError('All fields are required.');
+        return;
+      }
+
+      try {
+        // Step 1 — Login
+        const loginRes = await fetch('/api/auth/coordinator/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone, password })
+        });
+
+        const loginData = await loginRes.json();
+        if (!loginRes.ok) {
+          showError(loginData.error || 'Login failed.');
+          return;
+        }
+
+        const token = loginData.access_token;
+
+        // Step 2 — Start session
+        const sessionRes = await fetch('/api/sessions/start', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + token
+          },
+          body: JSON.stringify({ cohort_id: cohortId, title: sessionTitle })
+        });
+
+        const sessionData = await sessionRes.json();
+        if (!sessionRes.ok) {
+          showError(sessionData.error || 'Failed to start session.');
+          return;
+        }
+
+        window.location.href = `/dashboard?token=${token}&session_id=${sessionData.session_id}`;
+      } catch (e) {
+        showError('Could not connect to server.');
+      }
+    }
+
+    function showError(msg) {
+      const el = document.getElementById('error-msg');
+      el.textContent = msg;
+      el.style.display = 'block';
+    }
+  </script>
+</body>
+</html>

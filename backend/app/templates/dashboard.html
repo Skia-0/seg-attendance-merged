@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SEG Attendance Dashboard</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #F5F7FA; color: #1A1A2E; }
+    header { background: #2C5F8A; color: white; padding: 16px 32px; display: flex; align-items: center; justify-content: space-between; }
+    header h1 { font-size: 20px; font-weight: 600; }
+    header span { font-size: 14px; opacity: 0.8; }
+    .container { max-width: 1100px; margin: 32px auto; padding: 0 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    .card { background: white; border-radius: 12px; border: 1px solid #E2E8F0; padding: 24px; }
+    .card h2 { font-size: 16px; font-weight: 600; color: #4A5568; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.05em; }
+    .stat { font-size: 48px; font-weight: 700; color: #2C5F8A; text-align: center; margin: 8px 0; }
+    .stat-label { text-align: center; font-size: 14px; color: #4A5568; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th { text-align: left; padding: 10px 12px; background: #F5F7FA; color: #4A5568; font-weight: 600; border-bottom: 1px solid #E2E8F0; }
+    td { padding: 10px 12px; border-bottom: 1px solid #F0F0F0; }
+    tr:last-child td { border-bottom: none; }
+    .attendance-card { grid-column: 1 / -1; }
+    .badge { background: #E8F0F7; color: #2C5F8A; padding: 2px 8px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+    .complete { color: #1baf7a; font-weight: 600; }
+    .incomplete { color: #e53e3e; }
+    .status-bar { grid-column: 1 / -1; display: flex; gap: 12px; }
+    .status-btn { flex: 1; padding: 14px; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; }
+    .btn-checkin { background: #2C5F8A; color: white; }
+    .btn-checkout { background: #1baf7a; color: white; }
+    .btn-end { background: #e53e3e; color: white; }
+    .btn-disabled { background: #E2E8F0; color: #A0AEC0; cursor: not-allowed; }
+    .mode-indicator { grid-column: 1 / -1; text-align: center; padding: 10px; border-radius: 8px; font-weight: 600; font-size: 15px; }
+    .mode-checkin { background: #E8F0F7; color: #2C5F8A; }
+    .mode-checkout { background: #E6F9F2; color: #1baf7a; }
+    .mode-closed { background: #FFF5F5; color: #e53e3e; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>SEG Attendance — {{ cohort_name }} — {{ session_title }}</h1>
+  <span>Session: {{ session_id[:8] }}...</span>
+</header>
+
+<div class="container">
+
+  <div class="mode-indicator {% if checkin_open %}mode-checkin{% elif checkout_open %}mode-checkout{% else %}mode-closed{% endif %}">
+    {% if checkin_open %}
+      ✓ Check-in is open — learners are tapping in
+    {% elif checkout_open %}
+      ✓ Check-out is open — learners are tapping out
+    {% else %}
+      Session mode not active
+    {% endif %}
+  </div>
+
+  <div class="status-bar">
+    <button class="status-btn btn-checkin" onclick="openCheckin()">Open Check-in</button>
+    <button class="status-btn btn-checkout" onclick="openCheckout()">Open Check-out</button>
+    <button class="status-btn btn-end" onclick="endSession()">End Session</button>
+  </div>
+
+  <div class="card">
+    <h2>Attendance Count</h2>
+    <div class="stat" id="total">{{ total }}</div>
+    <div class="stat-label">learners checked in</div>
+  </div>
+
+  <div class="card">
+    <h2>Completed</h2>
+    <div class="stat" id="completed" style="color: #1baf7a;">
+      {{ attendance | selectattr('is_complete') | list | length }}
+    </div>
+    <div class="stat-label">check-in and check-out done</div>
+  </div>
+
+  <div class="card attendance-card">
+    <h2>Attendance List</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>SEG ID</th>
+          <th>Full Name</th>
+          <th>Checked In</th>
+          <th>Checked Out</th>
+          <th>Method</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="attendance-body">
+        {% for i, record in enumerate(attendance) %}
+        <tr>
+          <td>{{ i + 1 }}</td>
+          <td><span class="badge">{{ record.seg_id }}</span></td>
+          <td>{{ record.full_name }}</td>
+          <td>{{ record.checked_in_at }}</td>
+          <td>{{ record.checked_out_at }}</td>
+          <td>{{ record.verification_method }}</td>
+          <td class="{{ 'complete' if record.is_complete else 'incomplete' }}">
+            {{ 'Complete' if record.is_complete else 'Incomplete' }}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<script>
+  const sessionId = "{{ session_id }}";
+  const token = "{{ token }}";
+
+  function openCheckin() {
+    fetch('/api/sessions/checkin/open/' + sessionId, {
+      method: 'PATCH',
+      headers: { 'Authorization': 'Bearer ' + token }
+    }).then(() => location.reload());
+  }
+
+  function openCheckout() {
+    fetch('/api/sessions/checkout/open/' + sessionId, {
+      method: 'PATCH',
+      headers: { 'Authorization': 'Bearer ' + token }
+    }).then(() => location.reload());
+  }
+
+  function endSession() {
+    if (!confirm('Are you sure you want to end this session?')) return;
+    fetch('/api/sessions/end/' + sessionId, {
+      method: 'PATCH',
+      headers: { 'Authorization': 'Bearer ' + token }
+    }).then(() => alert('Session ended.')).then(() => location.reload());
+  }
+
+  setInterval(() => {
+    fetch('/api/sessions/attendance/' + sessionId, {
+      headers: { 'Authorization': 'Bearer ' + token }
+    })
+    .then(r => r.json())
+    .then(data => {
+      document.getElementById('total').textContent = data.total;
+      const completed = data.attendance.filter(r => r.is_complete).length;
+      document.getElementById('completed').textContent = completed;
+      const tbody = document.getElementById('attendance-body');
+      tbody.innerHTML = '';
+      data.attendance.forEach((r, i) => {
+        tbody.innerHTML += `<tr>
+          <td>${i + 1}</td>
+          <td><span class="badge">${r.seg_id}</span></td>
+          <td>${r.full_name}</td>
+          <td>${r.checked_in_at ? r.checked_in_at.split('T')[1].substring(0,8) : '--'}</td>
+          <td>${r.checked_out_at ? r.checked_out_at.split('T')[1].substring(0,8) : '--'}</td>
+          <td>${r.verification_method}</td>
+          <td class="${r.is_complete ? 'complete' : 'incomplete'}">${r.is_complete ? 'Complete' : 'Incomplete'}</td>
+        </tr>`;
+      });
+    });
+  }, 5000);
+</script>
+
+</body>
+</html>
