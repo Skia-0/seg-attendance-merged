@@ -2,7 +2,7 @@ import 'package:dio/dio.dart';
 import 'storage_service.dart';
 
 class ApiService {
- static const String baseUrl = 'https://vice-reoccupy-rebuilt.ngrok-free.dev/api';
+ static const String baseUrl = 'https://seg-attendance-backend.onrender.com/api';
   static Dio _createDio({bool requiresAuth = false}) {
     final dio = Dio(BaseOptions(
       baseUrl: baseUrl,

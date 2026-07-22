@@ -12,6 +12,44 @@ def generate_seg_id(cohort):
     return f"SEG-{code}-{str(count).zfill(4)}"
 
 
+@auth_bp.route("/hub/create", methods=["POST"])
+def create_hub():
+    data = request.get_json()
+
+    required = ["name", "location"]
+    if not all(k in data for k in required):
+        return jsonify({"error": "Missing required fields"}), 400
+
+    hub = Hub(
+        name=data["name"],
+        location=data["location"],
+        wifi_ssid=data.get("wifi_ssid", "")
+    )
+    db.session.add(hub)
+    db.session.commit()
+
+    return jsonify({
+        "message": "Hub created",
+        "hub_id": hub.id,
+        "name": hub.name
+    }), 201
+
+
+@auth_bp.route("/hubs", methods=["GET"])
+def get_hubs():
+    hubs = Hub.query.all()
+    return jsonify({
+        "hubs": [
+            {
+                "hub_id": h.id,
+                "name": h.name,
+                "location": h.location
+            }
+            for h in hubs
+        ]
+    }), 200
+
+
 @auth_bp.route("/coordinator/register", methods=["POST"])
 def register_coordinator():
     data = request.get_json()
