@@ -293,6 +293,19 @@ def get_attendance(session_id):
     }), 200
 
 
+@sessions_bp.route("/cohort/<cohort_id>/clear-cards", methods=["PATCH"])
+@jwt_required()
+def clear_nfc_cards(cohort_id):
+    """Phase 2 restructuring: return cards to pool at cohort end"""
+    cards = NFCCard.query.filter_by(cohort_id=cohort_id, is_active=True).all()
+    for card in cards:
+        card.learner_id = None
+        card.assigned_at = None
+        card.is_active = False
+    db.session.commit()
+    return jsonify({"message": f"{len(cards)} cards returned to pool"}), 200
+
+
 @sessions_bp.route("/cohort/<cohort_id>/certify", methods=["GET"])
 @jwt_required()
 def certify_cohort(cohort_id):
