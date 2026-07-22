@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, request, redirect, url_for
-from flask_jwt_extended import decode_token
+from flask_jwt_extended import decode_token, get_jwt_identity
 from app.models import Session, Cohort, Learner, AttendanceRecord
 from app import db
 
@@ -7,7 +7,11 @@ dashboard_bp = Blueprint("dashboard", __name__)
 
 @dashboard_bp.route("/dashboard")
 def dashboard():
-    token = request.args.get("token")
+    # Phase 2 restructuring: use Authorization header instead of URL token
+    auth_header = request.headers.get("Authorization", "")
+    token = None
+    if auth_header.startswith("Bearer "):
+        token = auth_header[7:]
     session_id = request.args.get("session_id")
 
     if not token or not session_id:

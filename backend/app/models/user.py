@@ -39,6 +39,7 @@ class Learner(db.Model):
     cohort_id = db.Column(db.String(36), db.ForeignKey("cohorts.id"), nullable=False)
     nfc_uid = db.Column(db.String(100), nullable=True)
     fingerprint_enrolled = db.Column(db.Boolean, default=False)
+    fingerprint_template = db.Column(db.String(256), nullable=True)  # Phase 2: biometric hash
     registered_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     attendance_records = db.relationship("AttendanceRecord", backref="learner", lazy=True)

@@ -293,6 +293,43 @@ def get_attendance(session_id):
     }), 200
 
 
+@sessions_bp.route("/cohort/<cohort_id>/certify", methods=["GET"])
+@jwt_required()
+def certify_cohort(cohort_id):
+    """Phase 2 restructuring: certification endpoint based on attendance %"""
+    cohort = Cohort.query.filter_by(id=cohort_id).first()
+    if not cohort:
+        return jsonify({"error": "Cohort not found"}), 404
+    total_sessions = Session.query.filter_by(
+        cohort_id=cohort_id
+    ).filter(Session.ended_at.isnot(None)).count()
+    learners = Learner.query.filter_by(cohort_id=cohort_id).all()
+    certified = []
+    for learner in learners:
+        completed = AttendanceRecord.query.join(Session).filter(
+            Session.cohort_id == cohort_id,
+            AttendanceRecord.learner_id == learner.id,
+            AttendanceRecord.is_complete == True
+        ).count()
+        percentage = round((completed / total_sessions * 100), 1) if total_sessions > 0 else 0
+        qualifies = percentage >= cohort.min_attendance_percent
+        if qualifies:
+            certified.append({
+                "seg_id": learner.seg_id,
+                "full_name": learner.full_name,
+                "attendance_percentage": percentage,
+                "status": "certified"
+            })
+    return jsonify({
+        "cohort_id": cohort_id,
+        "cohort_name": cohort.name,
+        "min_attendance_percent": cohort.min_attendance_percent,
+        "total_learners": len(learners),
+        "certified_learners": len(certified),
+        "certified": certified
+    }), 200
+
+
 @sessions_bp.route("/nfc/assign", methods=["POST"])
 @jwt_required()
 def assign_nfc():
